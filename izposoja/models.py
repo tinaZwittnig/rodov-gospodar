@@ -34,14 +34,14 @@ class Funkcija(models.Model):
 
 class Oseba(AbstractBaseUser):
     email = models.EmailField(
-        verbose_name='email address',
+        verbose_name='Elektronski naslov',
         max_length=255,
         unique=True,
     )
     telefonska_stevilka = PhoneNumberField(default='+41524204242')
     ime = models.CharField(max_length=100)
     priimek = models.CharField(max_length=100)
-
+    funkcija = models.ForeignKey(Funkcija, on_delete=models.CASCADE, null= True, blank=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
     objects = UserManager()
@@ -52,11 +52,11 @@ class Oseba(AbstractBaseUser):
         return self.email
 
     @staticmethod
-    def has_perm():
+    def has_perm(self):
         return True
 
     @staticmethod
-    def has_module_perms():
+    def has_module_perms(self):
         return True
 
     @property
@@ -77,7 +77,7 @@ class Izposoja(models.Model):
     rezervacija = models.ForeignKey(Rezervacija, on_delete=models.CASCADE)
     cas_izposoje = models.DateTimeField()
     cas_vracila = models.DateTimeField()
-    opmbe = models.TextField()
+    opombe = models.TextField()
 
 
 class Odklepanje(models.Model):
