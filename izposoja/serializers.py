@@ -1,39 +1,60 @@
-from rest_framework import serializers
-from models import *
+from django.shortcuts import get_object_or_404
+from rest_framework import serializers, viewsets, status, permissions
+from rest_framework.response import Response
 
-
-class OmaraSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Omara
-        fields = '__all__'
+from .models import *
 
 
 class LokacijaSerializer(serializers.ModelSerializer):
-    omara = OmaraSerializer()
-
     class Meta:
         model = Lokacija
         fields = [
             'id',
             'ime',
             'naslov',
-            'omara'
         ]
 
 
-class OpremaSerializer(serializers.ModelSerializer):
-    lokacija = LokacijaSerializer()
+class OmaraSerializer(serializers.ModelSerializer):
 
+
+    class Meta:
+        model = Omara
+        fields = [
+            'id',
+            'naziv',
+            'oznaka',
+            'lokacija'
+
+        ]
+
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data['lokacija'] = LokacijaSerializer(
+                Lokacija.objects.get(pk=data['lokacija'])).data
+            return data
+
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+
+class OpremaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Oprema
         fields = [
             'id',
             'naziv',
-            'lokacija',
+            'omara',
+            'polica',
             'kolicina',
             'poskodbe',
             'opombe'
         ]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['omara'] = OmaraSerializer(
+            Omara.objects.get(pk=data['omara'])).data
+        return data
 
 
 class FunkcijaSerializer(serializers.ModelSerializer):
@@ -43,7 +64,6 @@ class FunkcijaSerializer(serializers.ModelSerializer):
 
 
 class OsebaSerializer(serializers.ModelSerializer):
-    funkcija = FunkcijaSerializer()
 
     class Meta:
         model = Oseba
@@ -53,11 +73,17 @@ class OsebaSerializer(serializers.ModelSerializer):
                   'ime',
                   'priimek',
                   'is_active',
-                  'is_admin',]
+                  'is_admin',
+                  'funkcija']
 
-class RezervacijaSerilizer(serializers.ModelSerializer):
-    oseba = OsebaSerializer()
-    oprema = OpremaSerializer()
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data['funkcija'] = FunkcijaSerializer(
+                Funkcija.objects.get(pk=data['funkcija'])).data
+            return data
+
+
+class RezervacijaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Rezervacija
@@ -70,8 +96,16 @@ class RezervacijaSerilizer(serializers.ModelSerializer):
                   'opombe',
                   ]
 
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data['oseba'] = OsebaSerializer(
+                Oseba.objects.get(pk=data['oseba'])).data
+            data['oprema'] = OpremaSerializer(
+                Oprema.objects.get(pk=data['oprema'])).data
+            return data
+
+
 class IzposojaSerilizer(serializers.ModelSerializer):
-    rezervacija = RezervacijaSerilizer()
 
     class Meta:
         model = Izposoja
@@ -82,11 +116,23 @@ class IzposojaSerilizer(serializers.ModelSerializer):
                   'opombe',
                   ]
 
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data['rezervacija'] = RezervacijaSerializer(
+                Rezervacija.objects.get(pk=data['rezervacija'])).data
+            return data
+
+
 class OdklepanjeSerializer(serializers.ModelSerializer):
-    rezervacija = RezervacijaSerilizer()
 
     class Meta:
         model = Odklepanje
         fields = ['id',
                   'rezervacija',
                   'cas_odklepanja']
+
+        def to_representation(self, instance):
+            data = super().to_representation(instance)
+            data['rezervacija'] = RezervacijaSerializer(
+                Rezervacija.objects.get(pk=data['rezervacija'])).data
+            return data
